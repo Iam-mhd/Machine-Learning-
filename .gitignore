@@ -1,0 +1,32 @@
+# Environnement virtuel
+venv/
+
+# Caches Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Fichiers de logs
+*.log
+
+# Données brutes et modèles volumineux
+data/*.csv
+data/*.pkl
+backend/models/*.pkl
+
+# Fichiers d’environnement
+.env
+
+# Checkpoints Jupyter
+.ipynb_checkpoints/
+
+# Fichiers temporaires macOS
+.DS_Store
+
+# Répertoires config des IDE
+.vscode/
+.idea/
+
+# Autres
+*.bak
+*.swp
