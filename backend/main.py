@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
 import joblib, pandas as pd
 
-from auth import authenticate_user, create_access_token, get_current_user, oauth2_scheme
+from backend.auth import authenticate_user, create_access_token, get_current_user, oauth2_scheme
 from fastapi.security import OAuth2PasswordRequestForm
 
 app = FastAPI(title="Heart Disease Predictor")
