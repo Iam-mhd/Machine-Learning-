@@ -1,49 +1,50 @@
+# frontend/app_streamlit.py
+
+import os
 import streamlit as st
-import pandas as pd
 import requests
 
-API_URL = "http://localhost:8000/predict"
+# 1) En local, Streamlit lit frontend/.streamlit/secrets.toml
+#    [general]
+#    API_URL = "https://maladie-cardiaque.onrender.com"
+#
+# 2) En prod, Render expose API_URL via une Env Var
+API_URL = st.secrets.get("general", {}).get("API_URL") or os.getenv("API_URL")
 
-st.set_page_config(page_title="Prédiction Maladie Cardiaque", layout="centered")
-st.title("Prédiction de Maladie Cardiaque")
+if API_URL is None:
+    st.error("Veuillez définir l'URL de l'API dans .streamlit/secrets.toml ou via la var d'env API_URL")
+    st.stop()
 
-st.sidebar.header("Paramètres du patient")
-def user_input_features():
-    age      = st.sidebar.slider("Âge", 29, 77, 54)
-    sex      = st.sidebar.selectbox("Sexe (1 homme, 0 femme)", [1, 0])
-    cp       = st.sidebar.selectbox("Type douleur thoracique (0–3)", [0,1,2,3])
-    trestbps = st.sidebar.slider("Tension au repos (mmHg)", 94, 200, 131)
-    chol     = st.sidebar.slider("Cholestérol (mg/dl)", 126, 564, 246)
-    fbs      = st.sidebar.selectbox("Glycémie à jeun >120 mg/dl (1 oui, 0 non)", [1,0])
-    restecg  = st.sidebar.selectbox("ECG repos (0–2)", [0,1,2])
-    thalach  = st.sidebar.slider("Fréquence max (bpm)", 71, 202, 150)
-    exang    = st.sidebar.selectbox("Angine d'effort (1 oui, 0 non)", [1,0])
-    oldpeak  = st.sidebar.slider("Oldpeak", 0.0, 6.2, 1.0, 0.1)
-    slope    = st.sidebar.selectbox("Pente ST (0–2)", [0,1,2])
-    ca       = st.sidebar.selectbox("Nombre vaisseaux (0–3)", [0,1,2,3])
-    thal     = st.sidebar.selectbox("Thalassémie (1–3)", [1,2,3])
-    return {
-        "age": age, "sex": sex, "cp": cp,
-        "trestbps": trestbps, "chol": chol,
-        "fbs": fbs, "restecg": restecg,
-        "thalach": thalach, "exang": exang,
-        "oldpeak": oldpeak, "slope": slope,
-        "ca": ca, "thal": thal
+st.title("Prédiction de maladie cardiaque")
+st.write("Entrez les paramètres du patient pour obtenir une prédiction")
+
+with st.form("patient_form"):
+    age      = st.number_input("Âge", min_value=1, max_value=120, value=63, step=1)
+    sex      = st.selectbox("Sexe (0=Femme, 1=Homme)", [0, 1])
+    cp       = st.selectbox("Type douleur thoracique (0–3)", [0,1,2,3])
+    trestbps = st.number_input("Tension artérielle (mmHg)", value=145, step=1)
+    chol     = st.number_input("Cholestérol (mg/dl)", value=233, step=1)
+    fbs      = st.selectbox("Glycémie à jeun>120 mg/dl (0/1)", [0,1])
+    restecg  = st.selectbox("ECG au repos (0–2)", [0,1,2])
+    thalach  = st.number_input("Fréq. cardiaque max", value=150, step=1)
+    exang    = st.selectbox("Angine induite par effort (0/1)", [0,1])
+    oldpeak  = st.number_input("Ancien pic (oldpeak)", value=2.3, format="%.1f")
+    slope    = st.selectbox("Slope (0–2)", [0,1,2])
+    ca       = st.selectbox("Nombre de vaisseaux colorés (0–4)", [0,1,2,3,4])
+    thal     = st.selectbox("Thal (0=normal,1=fixed,2=reversible)", [0,1,2])
+    submitted = st.form_submit_button("Prédire")
+
+if submitted:
+    payload = {
+        "age": age, "sex": sex, "cp": cp, "trestbps": trestbps,
+        "chol": chol, "fbs": fbs, "restecg": restecg,
+        "thalach": thalach, "exang": exang, "oldpeak": oldpeak,
+        "slope": slope, "ca": ca, "thal": thal
     }
-
-input_data = user_input_features()
-df_input = pd.DataFrame([input_data])
-
-if st.button("Prédire"):
-    with st.spinner("En cours de prédiction..."):
-        res = requests.post(API_URL, json=input_data)
-        if res.status_code == 200:
-            result = res.json()
-            st.success(f"Prédiction : {'Maladie' if result['prediction']==1 else 'Pas de maladie'}")
-            st.write(f"Probabilité : {result['probability']*100:.1f}%")
-        else:
-            st.error("Erreur lors de l'appel à l'API")
-
-st.markdown("---")
-st.subheader("Entrée fournie")
-st.write(df_input)
+    try:
+        res = requests.post(f"{API_URL}/predict", json=payload)
+        res.raise_for_status()
+        data = res.json()
+        st.success(f"Prediction : **{data['prediction']}**, probabilité : {data['probability']:.2f}")
+    except Exception as e:
+        st.error(f"Erreur lors de l'appel à l'API : {e}")
