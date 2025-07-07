@@ -14,3 +14,4 @@ python-jose[bcrypt]
 passlib[bcrypt]
 python-multipart        
 requests               
+python-multipart

@@ -5,7 +5,8 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
+from fastapi.security import OAuth2  # remplace OAuth2PasswordBearer
 
 # Charger les variables d’environnement
 from dotenv import load_dotenv
@@ -13,21 +14,30 @@ import os
 load_dotenv()  # lit le .env
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM  = os.getenv("ALGORITHM", "HS256")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Pour l’exemple, on hardcode un seul utilisateur
+# on déclare directement un flow "password" pour Swagger UI
+oauth2_scheme = OAuth2(
+    flows=OAuthFlowsModel(
+        password={
+            "tokenUrl": "/token",  # correspond à votre route POST /token
+            "scopes": {}           # pas de scopes supplémentaires ici
+        }
+    )
+)
+
+# DB factice
 fake_users_db = {
     "admin": {
         "username": "admin",
-        "hashed_password": pwd_context.hash("monpassword")  # hashez ici votre mot de passe réel
+        "hashed_password": pwd_context.hash("monpassword")
     }
 }
 
-def verify_password(plain_password, hashed_password):
+def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 def authenticate_user(username: str, password: str):
@@ -36,9 +46,14 @@ def authenticate_user(username: str, password: str):
         return False
     return {"username": username}
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(
+    data: dict,
+    expires_delta: Optional[timedelta] = None
+) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -55,7 +70,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             raise credentials_exception
     except JWTError:
         raise credentials_exception
+
     user = fake_users_db.get(username)
     if user is None:
         raise credentials_exception
+
     return {"username": username}
