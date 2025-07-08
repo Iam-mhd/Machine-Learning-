@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorization
 from dotenv import load_dotenv
 import os
 
-# --- Chargement des secrets ---
+# --- Chargement des secrets d'environnement (Render) ---
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
@@ -19,17 +19,15 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# pour /token (Password Flow)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
-# pour /predict (HTTP Bearer)
-bearer_scheme = HTTPBearer()
+# Auth flows
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")   # Pour /token
+bearer_scheme = HTTPBearer()                              # Pour /predict
 
-# DB factice
+# DB factice, hash généré UNE FOIS EN LOCAL, puis copié-collé ici :
 fake_users_db = {
     "admin": {
         "username": "admin",
-        # Préalablement hashé en local :
-        "hashed_password": pwd_context.hash("monpassword")
+        "hashed_password": "$2b$12$mOMuogbsBmkJAapdeBZo/uC8FhRNc5KDMgQur39nU0fFxeYZTbw8S"
     }
 }
 
