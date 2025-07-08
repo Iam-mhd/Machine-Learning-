@@ -10,8 +10,6 @@ streamlit
 requests
 matplotlib
 seaborn
-python-jose[bcrypt]
+python-jose[cryptography]
 passlib[bcrypt]
-python-multipart        
-requests               
 python-multipart

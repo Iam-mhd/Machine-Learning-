@@ -12,7 +12,7 @@ __pycache__/
 # Données brutes et modèles volumineux
 data/*.csv
 data/*.pkl
-backend/models/*.pkl
+#backend/models/*.pkl
 
 # Fichiers d’environnement
 .env
